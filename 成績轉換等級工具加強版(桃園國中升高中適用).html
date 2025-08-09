@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>成績轉換等級工具加強版(桃園國中升高中適用)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom font for better aesthetics */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
+        }
+        /* Hide number input arrows */
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        /* Modal Content */
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); /* shadow-2xl */
+            width: 90%;
+            max-width: 400px;
+        }
+        /* School Recommendation Modal Specific Styling */
+        .school-modal-content {
+            max-height: 80vh; /* Limit height for scrollability */
+            overflow-y: auto; /* Enable vertical scrolling */
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border border-gray-200">
+        <h1 class="text-3xl font-extrabold text-gray-800 mb-6 text-center">成績轉換等級工具(桃園國中升高中適用)加強版</h1>
+        <p class="text-gray-600 text-center mb-6">選擇輸入模式，然後選擇科目並輸入成績。</p>
+
+        <!-- Student Tabs Navigation -->
+        <div id="studentTabsContainer" class="mb-4 flex flex-wrap gap-2 p-2 bg-blue-100 rounded-lg border border-blue-200 overflow-x-auto">
+            <!-- Student tabs will be rendered here dynamically -->
+        </div>
+        <div class="mb-8 flex justify-center space-x-4">
+            <button id="newStudentButton"
+                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-75">
+                新增學生
+            </button>
+            <button id="deleteStudentButton"
+                    class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-75">
+                刪除目前學生
+            </button>
+        </div>
+
+        <!-- Student Information Inputs -->
+        <div class="space-y-4 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-800 mb-2">學生資訊</h2>
+            <div>
+                <label for="studentClass" class="block text-sm font-medium text-gray-700 mb-1">班級</label>
+                <input type="text" id="studentClass" placeholder="例如: 國三甲"
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+                <label for="studentSeatNumber" class="block text-sm font-medium text-gray-700 mb-1">座號</label>
+                <input type="number" id="studentSeatNumber" placeholder="例如: 15" min="1"
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+                <label for="studentName" class="block text-sm font-medium text-gray-700 mb-1">姓名</label>
+                <input type="text" id="studentName" placeholder="例如: 王小明"
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+        </div>
+
+        <!-- Mode Selection -->
+        <div class="mb-6 flex justify-center space-x-4">
+            <label class="inline-flex items-center">
+                <input type="radio" name="inputMode" value="score" checked
+                       class="form-radio text-blue-600 h-4 w-4">
+                <span class="ml-2 text-gray-700 font-medium">成績輸入模式</span>
+            </label>
+            <label class="inline-flex items-center">
+                <input type="radio" name="inputMode" value="questions"
+                       class="form-radio text-blue-600 h-4 w-4">
+                <span class="ml-2 text-gray-700 font-medium">題數計算模式</span>
+            </label>
+        </div>
+
+        <div class="space-y-4">
+            <!-- Subject Selection Dropdown -->
+            <div>
+                <label for="subjectSelect" class="block text-sm font-medium text-gray-700 mb-1">選擇科目</label>
+                <select id="subjectSelect"
+                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white">
+                    <option value="">請選擇科目</option>
+                    <option value="chinese">國文</option>
+                    <option value="english">英文</option>
+                    <option value="math">數學</option>
+                    <option value="social">社會</option>
+                    <option value="science">自然</option>
+                </select>
+            </div>
+
+            <!-- Score Input Container (Default) -->
+            <div id="scoreInputContainer">
+                <label for="gradeInput" class="block text-sm font-medium text-gray-700 mb-1">輸入成績 (0-100)</label>
+                <input type="number" id="gradeInput" placeholder="例如: 85" min="0" max="100"
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <!-- General Question Count Input Container (Hidden by default) -->
+            <div id="generalQuestionInputContainer" class="hidden space-y-4">
+                <div>
+                    <label for="totalQuestionsInput" class="block text-sm font-medium text-gray-700 mb-1">總題數</label>
+                    <input type="number" id="totalQuestionsInput" placeholder="例如: 50" min="0"
+                           class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label for="correctAnswersInput" class="block text-sm font-medium text-gray-700 mb-1">答對題數</label>
+                    <input type="number" id="correctAnswersInput" placeholder="例如: 45" min="0"
+                           class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                </div>
+            </div>
+
+            <!-- English Question Count Input Container (Hidden by default) -->
+            <div id="englishQuestionInputContainer" class="hidden space-y-4">
+                <!-- Checkbox for No Listening Mode -->
+                <div class="flex items-center mb-2">
+                    <input type="checkbox" id="noListeningCheckbox"
+                           class="form-checkbox h-4 w-4 text-blue-600 rounded">
+                    <label for="noListeningCheckbox" class="ml-2 text-gray-700 font-medium">無聽力題模式 (僅閱讀)</label>
+                </div>
+
+                <div id="listeningInputsContainer" class="space-y-4">
+                    <p class="text-sm font-semibold text-gray-800">聽力部分 (Listening)</p>
+                    <div>
+                        <label for="listeningTotalQuestionsInput" class="block text-sm font-medium text-gray-700 mb-1">聽力總題數</label>
+                        <input type="number" id="listeningTotalQuestionsInput" placeholder="例如: 10" min="0"
+                               class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="listeningCorrectAnswersInput" class="block text-sm font-medium text-gray-700 mb-1">聽力答對題數</label>
+                        <input type="number" id="listeningCorrectAnswersInput" placeholder="例如: 8" min="0"
+                               class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+
+                <p class="text-sm font-semibold text-gray-800 mt-4">閱讀部分 (Reading)</p>
+                <div>
+                    <label for="readingTotalQuestionsInput" class="block text-sm font-medium text-gray-700 mb-1">閱讀總題數</label>
+                    <input type="number" id="readingTotalQuestionsInput" placeholder="例如: 40" min="0"
+                           class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label for="readingCorrectAnswersInput" class="block text-sm font-medium text-gray-700 mb-1">閱讀答對題數</label>
+                    <input type="number" id="readingCorrectAnswersInput" placeholder="例如: 35" min="0"
+                           class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                </div>
+            </div>
+
+            <!-- Math Question Count Input Container (Hidden by default) -->
+            <div id="mathQuestionInputContainer" class="hidden space-y-4">
+                <p class="text-sm font-semibold text-gray-800">選擇題部分 (Multiple Choice)</p>
+                <div>
+                    <label for="mcTotalQuestionsInput" class="block text-sm font-medium text-gray-700 mb-1">選擇題總題數</label>
+                    <input type="number" id="mcTotalQuestionsInput" placeholder="例如: 20" min="0"
+                           class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label for="mcCorrectAnswersInput" class="block text-sm font-medium text-gray-700 mb-1">選擇題答對題數</label>
+                    <input type="number" id="mcCorrectAnswersInput" placeholder="例如: 18" min="0"
+                           class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <p class="text-sm font-semibold text-gray-800 mt-4">非選擇題部分 (Non-Multiple Choice)</p>
+                <div>
+                    <label for="nmcTotalScoreInput" class="block text-sm font-medium text-gray-700 mb-1">非選擇題總分</label>
+                    <input type="number" id="nmcTotalScoreInput" placeholder="例如: 15" min="0"
+                           class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label for="nmcObtainedScoreInput" class="block text-sm font-medium text-gray-700 mb-1">非選擇題得分</label>
+                    <input type="number" id="nmcObtainedScoreInput" placeholder="例如: 12" min="0"
+                           class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="mt-8 flex flex-col space-y-4">
+            <button id="addGradeButton"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75">
+                新增/更新成績
+            </button>
+            <button id="recommendSchoolsButton"
+                    class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75">
+                推薦學校
+            </button>
+            <button id="exportExcelButton"
+                    class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75">
+                匯出所有學生 Excel 檔
+            </button>
+        </div>
+
+        <!-- Message Box for Alerts -->
+        <div id="messageBox" class="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg hidden" role="alert">
+            <p id="messageText"></p>
+        </div>
+
+        <!-- Results Display Area -->
+        <div id="results" class="mt-8 p-6 bg-blue-50 rounded-lg border border-blue-200 shadow-inner">
+            <h2 class="text-xl font-semibold text-blue-800 mb-4 text-center">目前學生已輸入成績</h2>
+            <div id="resultsContent" class="text-gray-700 leading-relaxed text-center">
+                <!-- Conversion results will be displayed here -->
+                目前沒有已輸入的成績。
+            </div>
+        </div>
+    </div>
+
+    <!-- File Naming Modal -->
+    <div id="filenameModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold text-gray-800 mb-4 text-center">匯出檔案命名</h3>
+            <p class="text-gray-600 mb-4 text-center">請輸入檔案名稱 (可留空使用預設名稱)</p>
+            <input type="text" id="exportFilenameInput" placeholder="例如: 學生期末成績"
+                   class="mb-6 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            <div class="flex justify-end space-x-4">
+                <button id="cancelExportButton"
+                        class="px-5 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold rounded-lg transition duration-300 ease-in-out">
+                    取消
+                </button>
+                <button id="confirmExportButton"
+                        class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition duration-300 ease-in-out">
+                    確認匯出
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- School Recommendation Modal -->
+    <div id="schoolRecommendationModal" class="modal-overlay hidden">
+        <div class="modal-content school-modal-content">
+            <h3 class="text-xl font-bold text-gray-800 mb-4 text-center">桃園地區推薦學校</h3>
+            <div id="schoolRecommendationContent" class="text-gray-700 leading-relaxed mb-6">
+                <!-- Recommendations will be displayed here -->
+            </div>
+            <p class="text-sm text-gray-500 mb-4 text-center">
+                *此為簡化模型，實際升學考量因素複雜，僅供參考。
+            </p>
+            <div class="flex justify-center">
+                <button id="closeSchoolModalButton"
+                        class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition duration-300 ease-in-out">
+                    關閉
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Firebase imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, query, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // DOM elements
+        const studentClassInput = document.getElementById('studentClass');
+        const studentSeatNumberInput = document.getElementById('studentSeatNumber');
+        const studentNameInput = document.getElementById('studentName');
+        const subjectSelect = document.getElementById('subjectSelect');
+        const gradeInput = document.getElementById('gradeInput');
+        const totalQuestionsInput = document.getElementById('totalQuestionsInput');
+        const correctAnswersInput = document.getElementById('correctAnswersInput');
+        const listeningTotalQuestionsInput = document.getElementById('listeningTotalQuestionsInput');
+        const listeningCorrectAnswersInput = document.getElementById('listeningCorrectAnswersInput');
+        const readingTotalQuestionsInput = document.getElementById('readingTotalQuestionsInput');
+        const readingCorrectAnswersInput = document.getElementById('readingCorrectAnswersInput');
+        const mcTotalQuestionsInput = document.getElementById('mcTotalQuestionsInput');
+        const mcCorrectAnswersInput = document.getElementById('mcCorrectAnswersInput');
+        const nmcTotalScoreInput = document.getElementById('nmcTotalScoreInput');
+        const nmcObtainedScoreInput = document.getElementById('nmcObtainedScoreInput');
+        const addGradeButton = document.getElementById('addGradeButton');
+        const exportExcelButton = document.getElementById('exportExcelButton');
+        const recommendSchoolsButton = document.getElementById('recommendSchoolsButton');
+        const resultsContent = document.getElementById('resultsContent');
+        const messageBox = document.getElementById('messageBox');
+        const messageText = document.getElementById('messageText');
+        const scoreInputContainer = document.getElementById('scoreInputContainer');
+        const generalQuestionInputContainer = document.getElementById('generalQuestionInputContainer');
+        const englishQuestionInputContainer = document.getElementById('englishQuestionInputContainer');
+        const mathQuestionInputContainer = document.getElementById('mathQuestionInputContainer');
+        const inputModeRadios = document.querySelectorAll('input[name="inputMode"]');
+        const noListeningCheckbox = document.getElementById('noListeningCheckbox');
+        const listeningInputsContainer = document.getElementById('listeningInputsContainer');
+        const filenameModal = document.getElementById('filenameModal');
+        const exportFilenameInput = document.getElementById('exportFilenameInput');
+        const confirmExportButton = document.getElementById('confirmExportButton');
+        const cancelExportButton = document.getElementById('cancelExportButton');
+        const schoolRecommendationModal = document.getElementById('schoolRecommendationModal');
+        const schoolRecommendationContent = document.getElementById('schoolRecommendationContent');
+        const closeSchoolModalButton = document.getElementById('closeSchoolModalButton');
+
+        // Pagination elements
+        const newStudentButton = document.getElementById('newStudentButton');
+        const deleteStudentButton = document.getElementById('deleteStudentButton');
+        const studentTabsContainer = document.getElementById('studentTabsContainer');
+
+        // Firebase variables
+        let app;
+        let db;
+        let auth;
+        let userId;
+        let studentsCollectionRef;
+
+        // Student data management
+        let students = []; // Array to hold all student objects
+        let currentStudentIndex = -1; // Index of the currently displayed student
+
+        // Store grades for the current subject (will be part of the current student object)
+        let gradesData = {}; // e.g., { 'chinese': 95, 'english': 88 }
+
+        // Mapping for subject display names
+        const subjectDisplayName = {
+            'chinese': '國文 (Chinese)',
+            'english': '英文 (English)',
+            'math': '數學 (Mathematics)',
+            'social': '社會 (Social Studies)',
+            'science': '自然 (Natural Science)'
+        };
+
+        // Function to convert numerical grade to English level with new grading scale
+        function getEnglishGradeLevel(score) {
+            if (score === 100) {
+                return 'A++ (Perfect)';
+            } else if (score >= 98 && score <= 99) {
+                return 'A++ (Excellent)';
+            } else if (score >= 95 && score <= 97) {
+                return 'A+ (Outstanding)';
+            } else if (score >= 90 && score <= 94) {
+                return 'A (Excellent)';
+            } else if (score >= 85 && score <= 89) {
+                return 'B++ (Very Good)';
+            } else if (score >= 80 && score <= 84) {
+                return 'B+ (Good)';
+            } else if (score >= 70 && score <= 79) {
+                return 'B (Satisfactory)';
+            } else if (score >= 60 && score <= 69) {
+                return 'C (Acceptable)';
+            } else if (score >= 0 && score <= 59) {
+                return 'Unsatisfactory';
+            } else {
+                return '無效成績 (Invalid Score)';
+            }
+        }
+
+        // Function to display messages in the message box
+        function showMessage(message, type = 'error') {
+            messageText.textContent = message;
+            messageBox.classList.remove('hidden');
+            if (type === 'error') {
+                messageBox.classList.remove('bg-green-100', 'border-green-400', 'text-green-700');
+                messageBox.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
+            } else { // 'success' or 'info'
+                messageBox.classList.remove('bg-red-100', 'border-red-400', 'text-red-700');
+                messageBox.classList.add('bg-green-100', 'border-green-400', 'text-green-700');
+            }
+        }
+
+        // Function to hide the message box
+        function hideMessage() {
+            messageBox.classList.add('hidden');
+        }
+
+        // Function to render all stored grades for the current student
+        function renderGrades() {
+            let outputHtml = '';
+            const subjectsOrder = ['chinese', 'english', 'math', 'social', 'science']; // Define a consistent order
+            let hasAnyGrade = false;
+
+            if (currentStudentIndex !== -1 && students[currentStudentIndex]) {
+                const currentStudentGrades = students[currentStudentIndex].gradesData || {};
+                subjectsOrder.forEach(subjectKey => {
+                    if (currentStudentGrades.hasOwnProperty(subjectKey)) {
+                        hasAnyGrade = true;
+                        const score = currentStudentGrades[subjectKey];
+                        outputHtml += `<p class="mb-2"><span class="font-medium text-gray-800">${subjectDisplayName[subjectKey]}</span>: <span class="text-blue-700 font-semibold">${score.toFixed(2)}</span> → <span class="text-green-600 font-bold">${getEnglishGradeLevel(score)}</span></p>`;
+                    }
+                });
+            }
+
+            if (!hasAnyGrade) {
+                resultsContent.innerHTML = '目前沒有已輸入的成績。';
+            } else {
+                resultsContent.innerHTML = outputHtml;
+            }
+        }
+
+        // Function to update input fields visibility based on mode and subject
+        function updateInputFieldsVisibility() {
+            const currentMode = document.querySelector('input[name="inputMode"]:checked').value;
+            const selectedSubjectKey = subjectSelect.value;
+
+            // Hide all question-related containers first
+            generalQuestionInputContainer.classList.add('hidden');
+            englishQuestionInputContainer.classList.add('hidden');
+            mathQuestionInputContainer.classList.add('hidden');
+            scoreInputContainer.classList.add('hidden');
+
+            // Show relevant container based on mode and subject
+            if (currentMode === 'score') {
+                scoreInputContainer.classList.remove('hidden');
+            } else { // currentMode === 'questions'
+                if (selectedSubjectKey === 'english') {
+                    englishQuestionInputContainer.classList.remove('hidden');
+                    // Toggle listening inputs based on checkbox
+                    if (noListeningCheckbox.checked) {
+                        listeningInputsContainer.classList.add('hidden');
+                    } else {
+                        listeningInputsContainer.classList.remove('hidden');
+                    }
+                } else if (selectedSubjectKey === 'math') {
+                    mathQuestionInputContainer.classList.remove('hidden');
+                } else if (selectedSubjectKey && selectedSubjectKey !== 'chinese' && selectedSubjectKey !== 'english' && selectedSubjectKey !== 'math' && selectedSubjectKey !== 'social' && selectedSubjectKey !== 'science') {
+                    // If a subject is selected but it's not English or Math, show general questions
+                    generalQuestionInputContainer.classList.remove('hidden');
+                } else if (selectedSubjectKey === 'chinese' || selectedSubjectKey === 'social' || selectedSubjectKey === 'science') {
+                    generalQuestionInputContainer.classList.remove('hidden');
+                }
+            }
+        }
+
+        // Function to calculate score from general question counts
+        function calculateGeneralScore(totalQuestions, correctAnswers) {
+            if (totalQuestions <= 0) {
+                showMessage('總題數必須大於0。', 'error');
+                return null;
+            }
+            if (correctAnswers < 0 || correctAnswers > totalQuestions) {
+                showMessage('答對題數必須介於0和總題數之間。', 'error');
+                return null;
+            }
+            return (correctAnswers / totalQuestions) * 100;
+        }
+
+        // Function to calculate score from English question counts
+        function calculateEnglishScore(listeningTotal, listeningCorrect, readingTotal, readingCorrect, noListeningMode) {
+            let totalScore = 0;
+            let totalPossibleScore = 0;
+
+            if (!noListeningMode) {
+                if (listeningTotal <= 0) {
+                    showMessage('聽力總題數必須大於0。', 'error');
+                    return null;
+                }
+                if (listeningCorrect < 0 || listeningCorrect > listeningTotal) {
+                    showMessage('聽力答對題數必須介於0和聽力總題數之間。', 'error');
+                    return null;
+                }
+                totalScore += (listeningCorrect / listeningTotal) * 20; // Assuming listening is 20%
+                totalPossibleScore += 20;
+            }
+
+            if (readingTotal <= 0) {
+                showMessage('閱讀總題數必須大於0。', 'error');
+                return null;
+            }
+            if (readingCorrect < 0 || readingCorrect > readingTotal) {
+                showMessage('閱讀答對題數必須介於0和閱讀總題數之間。', 'error');
+                return null;
+            }
+            totalScore += (readingCorrect / readingTotal) * (noListeningMode ? 100 : 80); // Reading is 80% if listening exists, 100% if not
+            totalPossibleScore += (noListeningMode ? 100 : 80);
+
+            if (totalPossibleScore === 0) { // Should not happen if inputs are valid
+                showMessage('無法計算英文成績，請檢查輸入。', 'error');
+                return null;
+            }
+            return (totalScore / totalPossibleScore) * 100;
+        }
+
+        // Function to calculate score from Math question counts
+        function calculateMathScore(mcTotal, mcCorrect, nmcTotal, nmcObtained) {
+            let totalScore = 0;
+            let totalPossibleScore = 0;
+
+            // Assuming multiple choice is 80% and non-multiple choice is 20%
+            const mcWeight = 0.8;
+            const nmcWeight = 0.2;
+
+            if (mcTotal <= 0) {
+                showMessage('選擇題總題數必須大於0。', 'error');
+                return null;
+            }
+            if (mcCorrect < 0 || mcCorrect > mcTotal) {
+                showMessage('選擇題答對題數必須介於0和選擇題總題數之間。', 'error');
+                return null;
+            }
+            totalScore += (mcCorrect / mcTotal) * (100 * mcWeight);
+            totalPossibleScore += (100 * mcWeight);
+
+            if (nmcTotal <= 0) {
+                showMessage('非選擇題總分必須大於0。', 'error');
+                return null;
+            }
+            if (nmcObtained < 0 || nmcObtained > nmcTotal) {
+                showMessage('非選擇題得分必須介於0和非選擇題總分之間。', 'error');
+                return null;
+            }
+            totalScore += (nmcObtained / nmcTotal) * (100 * nmcWeight);
+            totalPossibleScore += (100 * nmcWeight);
+
+            if (totalPossibleScore === 0) { // Should not happen if inputs are valid
+                showMessage('無法計算數學成績，請檢查輸入。', 'error');
+                return null;
+            }
+            return (totalScore / totalPossibleScore) * 100;
+        }
+
+        // Function to clear all input fields
+        function clearInputFields() {
+            studentClassInput.value = '';
+            studentSeatNumberInput.value = '';
+            studentNameInput.value = '';
+            subjectSelect.value = '';
+            gradeInput.value = '';
+            totalQuestionsInput.value = '';
+            correctAnswersInput.value = '';
+            listeningTotalQuestionsInput.value = '';
+            listeningCorrectAnswersInput.value = '';
+            readingTotalQuestionsInput.value = '';
+            readingCorrectAnswersInput.value = '';
+            mcTotalQuestionsInput.value = '';
+            mcCorrectAnswersInput.value = '';
+            nmcTotalScoreInput.value = '';
+            nmcObtainedScoreInput.value = '';
+            noListeningCheckbox.checked = false;
+            // Reset input mode to score
+            document.querySelector('input[name="inputMode"][value="score"]').checked = true;
+            updateInputFieldsVisibility();
+        }
+
+        // Function to load student data into input fields
+        function loadStudent(index) {
+            if (index >= 0 && index < students.length) {
+                currentStudentIndex = index;
+                const student = students[currentStudentIndex];
+                studentClassInput.value = student.studentClass || '';
+                studentSeatNumberInput.value = student.studentSeatNumber || '';
+                studentNameInput.value = student.studentName || '';
+                gradesData = student.gradesData ? JSON.parse(JSON.stringify(student.gradesData)) : {}; // Deep copy
+                renderGrades();
+                renderStudentTabs(); // Update tab highlighting
+                hideMessage(); // Clear any messages when switching students
+            } else {
+                clearInputFields();
+                gradesData = {};
+                renderGrades();
+                renderStudentTabs(); // Update tab highlighting
+            }
+        }
+
+        // Function to save current student's data
+        async function saveCurrentStudent() {
+            if (currentStudentIndex === -1 || students.length === 0) return; // No student selected or no students to save
+
+            const studentId = students[currentStudentIndex].id;
+            const studentData = {
+                studentClass: studentClassInput.value.trim(),
+                studentSeatNumber: studentSeatNumberInput.value.trim(),
+                studentName: studentNameInput.value.trim(),
+                gradesData: gradesData // This is the gradesData object for the current student
+            };
+
+            // Update the local students array
+            students[currentStudentIndex] = { ...students[currentStudentIndex], ...studentData };
+
+            try {
+                // Save to Firestore
+                const studentDocRef = doc(studentsCollectionRef, studentId);
+                await setDoc(studentDocRef, studentData, { merge: true }); // Use merge to update existing fields
+                renderStudentTabs(); // Update tab names if student name changed
+                // showMessage('學生資料已儲存！', 'success'); // Too frequent, maybe remove or make subtle
+            } catch (e) {
+                console.error("Error saving student document: ", e);
+                showMessage('儲存學生資料失敗。', 'error');
+            }
+        }
+
+        // Function to add a new student
+        async function addNewStudent() {
+            // Save current student before switching
+            if (currentStudentIndex !== -1 && students.length > 0) {
+                await saveCurrentStudent();
+            }
+
+            const newStudentId = crypto.randomUUID(); // Generate a unique ID for the new student
+            const newStudent = {
+                id: newStudentId,
+                studentClass: '',
+                studentSeatNumber: '',
+                studentName: `新學生 ${students.length + 1}`, // Default name for new student
+                gradesData: {}
+            };
+            students.push(newStudent);
+            loadStudent(students.length - 1); // Load the newly added student
+            showMessage('已新增一位新學生。', 'info');
+            // Save the new empty student to Firestore immediately
+            await saveCurrentStudent();
+        }
+
+        // Function to delete the current student
+        async function deleteCurrentStudent() {
+            if (currentStudentIndex === -1 || students.length === 0) {
+                showMessage('沒有學生可以刪除。', 'error');
+                return;
+            }
+
+            // Custom confirmation dialog
+            const confirmDelete = await new Promise(resolve => {
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4 text-center">確認刪除</h3>
+                        <p class="text-gray-600 mb-4 text-center">您確定要刪除這位學生嗎？此操作無法復原。</p>
+                        <div class="flex justify-end space-x-4">
+                            <button id="cancelDeleteButton" class="px-5 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold rounded-lg">取消</button>
+                            <button id="confirmDeleteButton" class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg">確認刪除</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+
+                document.getElementById('confirmDeleteButton').addEventListener('click', () => {
+                    document.body.removeChild(modal);
+                    resolve(true);
+                });
+                document.getElementById('cancelDeleteButton').addEventListener('click', () => {
+                    document.body.removeChild(modal);
+                    resolve(false);
+                });
+            });
+
+
+            if (!confirmDelete) {
+                showMessage('刪除操作已取消。', 'info');
+                return;
+            }
+
+            const studentIdToDelete = students[currentStudentIndex].id;
+
+            try {
+                // Delete from Firestore
+                const studentDocRef = doc(studentsCollectionRef, studentIdToDelete);
+                await deleteDoc(studentDocRef);
+
+                // Remove from local array
+                students.splice(currentStudentIndex, 1);
+
+                if (students.length === 0) {
+                    currentStudentIndex = -1;
+                    clearInputFields();
+                    gradesData = {};
+                    showMessage('所有學生資料已清空。', 'success');
+                } else if (currentStudentIndex >= students.length) {
+                    currentStudentIndex = students.length - 1; // Go to last student if current was last
+                    loadStudent(currentStudentIndex);
+                } else {
+                    loadStudent(currentStudentIndex); // Load the new student at the same index
+                }
+                showMessage('學生資料已成功刪除！', 'success');
+            } catch (e) {
+                console.error("Error deleting student document: ", e);
+                showMessage('刪除學生資料失敗。', 'error');
+            }
+        }
+
+
+        // Function to render student tabs
+        function renderStudentTabs() {
+            studentTabsContainer.innerHTML = ''; // Clear existing tabs
+            if (students.length === 0) {
+                studentTabsContainer.innerHTML = '<span class="text-gray-600">目前沒有學生資料。請點擊「新增學生」按鈕。</span>';
+                return;
+            }
+
+            students.forEach((student, index) => {
+                const tabButton = document.createElement('button');
+                tabButton.textContent = student.studentName || `學生 ${index + 1}`;
+                tabButton.dataset.studentIndex = index; // Store index for easy lookup
+
+                let classes = 'px-4 py-2 rounded-lg mr-2 whitespace-nowrap font-medium transition duration-200 ease-in-out';
+                if (index === currentStudentIndex) {
+                    classes += ' bg-blue-600 text-white shadow-md transform scale-105';
+                } else {
+                    classes += ' bg-blue-200 text-blue-800 hover:bg-blue-300';
+                }
+                tabButton.className = classes;
+
+                tabButton.addEventListener('click', async () => {
+                    if (currentStudentIndex !== -1 && students.length > 0) {
+                        await saveCurrentStudent(); // Save current student's data before switching
+                    }
+                    loadStudent(index);
+                });
+                studentTabsContainer.appendChild(tabButton);
+            });
+            // Scroll to the active tab
+            if (currentStudentIndex !== -1 && studentTabsContainer.children[currentStudentIndex]) {
+                studentTabsContainer.children[currentStudentIndex].scrollIntoView({ behavior: 'smooth', inline: 'center' });
+            }
+        }
+
+
+        // Function to export ALL grades to CSV
+        function exportAllGradesToCsv(customFilename) {
+            if (students.length === 0) {
+                showMessage('沒有學生資料可以匯出。', 'error');
+                return;
+            }
+
+            let csvContent = "班級,座號,姓名,科目,成績,等級\n";
+            const subjectsOrder = ['chinese', 'english', 'math', 'social', 'science'];
+
+            students.forEach(student => {
+                const studentClass = student.studentClass || '';
+                const studentSeatNumber = student.studentSeatNumber || '';
+                const studentName = student.studentName || '';
+                const studentGrades = student.gradesData || {};
+
+                let hasSubjectGrades = false;
+                subjectsOrder.forEach(subjectKey => {
+                    if (studentGrades.hasOwnProperty(subjectKey)) {
+                        hasSubjectGrades = true;
+                        const score = studentGrades[subjectKey];
+                        const level = getEnglishGradeLevel(score);
+                        csvContent += `${studentClass},${studentSeatNumber},${studentName},${subjectDisplayName[subjectKey]},${score.toFixed(2)},${level}\n`;
+                    }
+                });
+
+                // If a student has no grades, still include their info in a row
+                if (!hasSubjectGrades) {
+                    csvContent += `${studentClass},${studentSeatNumber},${studentName},,,無成績\n`;
+                }
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+
+            const defaultFilename = `所有學生-成績報告.csv`;
+            link.setAttribute('href', url);
+            link.setAttribute('download', customFilename || defaultFilename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showMessage('所有學生成績已成功匯出！', 'success');
+        }
+
+        // Function to recommend schools based on overall performance of the CURRENT student
+        function recommendSchools() {
+            if (currentStudentIndex === -1 || !students[currentStudentIndex]) {
+                schoolRecommendationContent.innerHTML = '<p class="text-center text-red-600">請先選擇一位學生並輸入至少一科成績才能推薦學校。</p>';
+                schoolRecommendationModal.classList.remove('hidden');
+                return;
+            }
+
+            const currentStudentGrades = students[currentStudentIndex].gradesData || {};
+            const subjects = ['chinese', 'english', 'math', 'social', 'science'];
+            let totalScore = 0;
+            let gradedSubjectsCount = 0;
+
+            subjects.forEach(subject => {
+                if (currentStudentGrades.hasOwnProperty(subject)) {
+                    totalScore += currentStudentGrades[subject];
+                    gradedSubjectsCount++;
+                }
+            });
+
+            if (gradedSubjectsCount === 0) {
+                schoolRecommendationContent.innerHTML = '<p class="text-center text-red-600">目前學生尚未輸入任何成績，請先輸入至少一科成績才能推薦學校。</p>';
+                schoolRecommendationModal.classList.remove('hidden');
+                return;
+            }
+
+            const averageScore = totalScore / gradedSubjectsCount;
+
+            let recommendations = [];
+            let recommendationTitle = '';
+
+            if (averageScore >= 90) {
+                recommendationTitle = '恭喜您！您的成績非常優異，有機會進入頂尖高中！';
+                recommendations = [
+                    '武陵高中 (Wuling Senior High School)',
+                    '中大壢中 (National Central University Affiliated Senior High School)',
+                    '桃園高中 (Taoyuan Senior High School)',
+                    '內壢高中 (Neili Senior High School)'
+                ];
+            } else if (averageScore >= 80) {
+                recommendationTitle = '您的成績表現良好，有機會進入優質高中。';
+                recommendations = [
+                    '陽明高中 (Yang-Ming Senior High School)',
+                    '壽山高中 (Shoushan Senior High School)',
+                    '平鎮高中 (Pingjen Senior High School)',
+                    '大園國際高中 (Dayuan International Senior High School)'
+                ];
+            } else if (averageScore >= 70) {
+                recommendationTitle = '您的成績達到一般水準，可以考慮多樣化的高中選擇。';
+                recommendations = [
+                    '南崁高中 (Nankan Senior High School)',
+                    '永豐高中 (Yongfeng Senior High School)',
+                    '觀音高中 (Guanyin Senior High School)',
+                    '新屋高中 (Xinwu Senior High School)'
+                ];
+            } else {
+                recommendationTitle = '您的成績還有進步空間，建議加強學習，並可考慮技術型高中或綜合高中。';
+                recommendations = [
+                    '永豐高中 (Yongfeng Senior High School)',
+                    '觀音高中 (Guanyin Senior High School)',
+                    '新屋高中 (Xinwu Senior High School)',
+                    '其他技術型高中或高職 (Vocational High Schools)'
+                ];
+            }
+
+            let recommendationHtml = `<p class="text-center font-semibold text-lg mb-4">${recommendationTitle}</p>`;
+            recommendationHtml += `<p class="text-center mb-4">您的平均成績為: <span class="font-bold text-blue-700">${averageScore.toFixed(2)}</span> 分</p>`;
+            recommendationHtml += `<p class="font-medium text-gray-800 mb-2">以下是一些推薦學校:</p>`;
+            recommendationHtml += `<ul class="list-disc list-inside space-y-1 pl-4">`;
+            recommendations.forEach(school => {
+                recommendationHtml += `<li>${school}</li>`;
+            });
+            recommendationHtml += `</ul>`;
+
+            schoolRecommendationContent.innerHTML = recommendationHtml;
+            schoolRecommendationModal.classList.remove('hidden'); // Show the modal
+        }
+
+        // Firebase Initialization and Data Loading
+        async function initializeFirebaseAndLoadData() {
+            try {
+                // Global variables __app_id, __firebase_config, __initial_auth_token are provided by the environment
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Sign in with custom token if available, otherwise anonymously
+                if (typeof __initial_auth_token !== 'undefined') {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                // Get the user ID after authentication
+                userId = auth.currentUser?.uid || crypto.randomUUID();
+                studentsCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/students`);
+
+                // Load all students from Firestore
+                await loadAllStudentsFromFirestore();
+
+            } catch (error) {
+                console.error("Firebase initialization or data loading failed:", error);
+                showMessage("無法載入資料，請檢查網路連線或稍後再試。", "error");
+            }
+        }
+
+        async function loadAllStudentsFromFirestore() {
+            students = []; // Clear local array
+            try {
+                const q = query(studentsCollectionRef);
+                const querySnapshot = await getDocs(q);
+                querySnapshot.forEach((doc) => {
+                    students.push({ id: doc.id, ...doc.data() });
+                });
+
+                if (students.length > 0) {
+                    currentStudentIndex = 0; // Load the first student
+                    loadStudent(currentStudentIndex);
+                } else {
+                    // If no students, create a new one
+                    await addNewStudent();
+                }
+            } catch (e) {
+                console.error("Error loading students from Firestore: ", e);
+                showMessage('載入學生資料失敗。', 'error');
+            }
+        }
+
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initializeFirebaseAndLoadData(); // Initialize Firebase and load data on DOMContentLoaded
+
+            addGradeButton.addEventListener('click', async () => {
+                hideMessage(); // Hide any previous messages
+
+                const selectedSubject = subjectSelect.value;
+                if (!selectedSubject) {
+                    showMessage('請選擇一個科目。', 'error');
+                    return;
+                }
+
+                const currentMode = document.querySelector('input[name="inputMode"]:checked').value;
+                let calculatedScore = null;
+
+                if (currentMode === 'score') {
+                    const grade = parseFloat(gradeInput.value);
+                    if (isNaN(grade) || grade < 0 || grade > 100) {
+                        showMessage('請輸入有效的成績 (0-100)。', 'error');
+                        return;
+                    }
+                    calculatedScore = grade;
+                } else { // currentMode === 'questions'
+                    if (selectedSubject === 'english') {
+                        const noListeningMode = noListeningCheckbox.checked;
+                        let listeningTotal = 0;
+                        let listeningCorrect = 0;
+
+                        if (!noListeningMode) {
+                            listeningTotal = parseInt(listeningTotalQuestionsInput.value);
+                            listeningCorrect = parseInt(listeningCorrectAnswersInput.value);
+                            if (isNaN(listeningTotal) || isNaN(listeningCorrect)) {
+                                showMessage('請輸入有效的聽力題數。', 'error');
+                                return;
+                            }
+                        }
+
+                        const readingTotal = parseInt(readingTotalQuestionsInput.value);
+                        const readingCorrect = parseInt(readingCorrectAnswersInput.value);
+
+                        if (isNaN(readingTotal) || isNaN(readingCorrect)) {
+                            showMessage('請輸入有效的閱讀題數。', 'error');
+                            return;
+                        }
+                        calculatedScore = calculateEnglishScore(listeningTotal, listeningCorrect, readingTotal, readingCorrect, noListeningMode);
+                    } else if (selectedSubject === 'math') {
+                        const mcTotal = parseInt(mcTotalQuestionsInput.value);
+                        const mcCorrect = parseInt(mcCorrectAnswersInput.value);
+                        const nmcTotal = parseInt(nmcTotalScoreInput.value);
+                        const nmcObtained = parseInt(nmcObtainedScoreInput.value);
+
+                        if (isNaN(mcTotal) || isNaN(mcCorrect) || isNaN(nmcTotal) || isNaN(nmcObtained)) {
+                            showMessage('請輸入有效的數學題數/分數。', 'error');
+                            return;
+                        }
+                        calculatedScore = calculateMathScore(mcTotal, mcCorrect, nmcTotal, nmcObtained);
+                    } else { // chinese, social, science (general question mode)
+                        const totalQuestions = parseInt(totalQuestionsInput.value);
+                        const correctAnswers = parseInt(correctAnswersInput.value);
+                        if (isNaN(totalQuestions) || isNaN(correctAnswers)) {
+                            showMessage('請輸入有效的總題數和答對題數。', 'error');
+                            return;
+                        }
+                        calculatedScore = calculateGeneralScore(totalQuestions, correctAnswers);
+                    }
+                }
+
+                if (calculatedScore !== null) {
+                    gradesData[selectedSubject] = calculatedScore;
+                    // Update the gradesData for the current student in the local array
+                    if (currentStudentIndex !== -1 && students[currentStudentIndex]) {
+                        students[currentStudentIndex].gradesData = gradesData;
+                        await saveCurrentStudent(); // Save to Firestore
+                    }
+                    renderGrades();
+                    showMessage(`${subjectDisplayName[selectedSubject]} 成績已新增/更新！`, 'success');
+                    // Clear inputs after adding
+                    gradeInput.value = '';
+                    totalQuestionsInput.value = '';
+                    correctAnswersInput.value = '';
+                    listeningTotalQuestionsInput.value = '';
+                    listeningCorrectAnswersInput.value = '';
+                    readingTotalQuestionsInput.value = '';
+                    readingCorrectAnswersInput.value = '';
+                    mcTotalQuestionsInput.value = '';
+                    mcCorrectAnswersInput.value = '';
+                    nmcTotalScoreInput.value = '';
+                    nmcObtainedScoreInput.value = '';
+                    subjectSelect.value = ''; // Reset subject selection
+                    updateInputFieldsVisibility(); // Update visibility after resetting subject
+                }
+            });
+
+            // Event listener for input mode change
+            inputModeRadios.forEach(radio => {
+                radio.addEventListener('change', updateInputFieldsVisibility);
+            });
+
+            // Event listener for subject selection change
+            subjectSelect.addEventListener('change', updateInputFieldsVisibility);
+
+            // Event listener for no listening checkbox
+            noListeningCheckbox.addEventListener('change', updateInputFieldsVisibility);
+
+            // Event listener for Export Excel Button: Show the file naming modal
+            exportExcelButton.addEventListener('click', () => {
+                hideMessage(); // Hide any previous messages
+                filenameModal.classList.remove('hidden'); // Show the modal
+            });
+
+            // Event listener for Confirm Export Button in modal
+            confirmExportButton.addEventListener('click', () => {
+                const customFilename = exportFilenameInput.value.trim();
+                exportAllGradesToCsv(customFilename); // Export all students
+                filenameModal.classList.add('hidden'); // Hide the modal
+            });
+
+            // Event listener for Cancel Export Button in modal
+            cancelExportButton.addEventListener('click', () => {
+                filenameModal.classList.add('hidden'); // Hide the modal
+                hideMessage(); // Also clear any messages
+            });
+
+            // Event listener for Recommend Schools Button: Show the school recommendation modal
+            recommendSchoolsButton.addEventListener('click', () => {
+                hideMessage(); // Hide any previous messages
+                recommendSchools(); // Generate and display recommendations
+                // The recommendSchools function will show the modal itself
+            });
+
+            // Event listener for Close School Modal Button
+            closeSchoolModalButton.addEventListener('click', () => {
+                schoolRecommendationModal.classList.add('hidden'); // Hide the modal
+            });
+
+            // Pagination button event listeners
+            newStudentButton.addEventListener('click', addNewStudent);
+            deleteStudentButton.addEventListener('click', deleteCurrentStudent);
+
+            // Save current student data whenever student info fields change
+            studentClassInput.addEventListener('change', saveCurrentStudent);
+            studentSeatNumberInput.addEventListener('change', saveCurrentStudent);
+            studentNameInput.addEventListener('change', saveCurrentStudent);
+
+            // Initial setup for visibility (will be called after data load)
+            updateInputFieldsVisibility();
+            renderGrades();
+        });
+    </script>
+</body>
+</html>
